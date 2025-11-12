@@ -23,19 +23,16 @@ const messagesRef = ref(database, 'radiatron/messages');
 function App() {
   const defaultMode = 'sender'; // Fixed to sender mode
   
-  const [mode, setMode] = useState(defaultMode);
+  const [mode] = useState(defaultMode);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
-  const [receiverState, setReceiverState] = useState('intro');
-  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
-  const [messageVisible, setMessageVisible] = useState(false);
   const messagesEndRef = useRef(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editingText, setEditingText] = useState('');
 
   // ==================== FIREBASE LISTENERS ====================
   useEffect(() => {
-    const unsubscribe = onValue(messagesRef, (snapshot) => {
+    onValue(messagesRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         const messageList = Object.entries(data).map(([key, value]) => ({
@@ -52,58 +49,6 @@ function App() {
     return () => off(messagesRef);
   }, []);
 
-  // ==================== RECEIVER ANIMATION SEQUENCE ====================
-  useEffect(() => {
-    if (mode === 'receiver') {
-      setReceiverState('intro');
-      setCurrentMessageIndex(0);
-      setMessageVisible(false);
-
-      const introTimer = setTimeout(() => {
-        setReceiverState('rscope');
-        
-        const rscopeTimer = setTimeout(() => {
-          if (messages.length > 0) {
-            setReceiverState('messages');
-            setCurrentMessageIndex(0);
-            setMessageVisible(true);
-          } else {
-            setReceiverState('standby');
-          }
-        }, 3000);
-
-        return () => clearTimeout(rscopeTimer);
-      }, 10000);
-
-      return () => clearTimeout(introTimer);
-    }
-  }, [mode, messages.length]);
-
-  // ==================== MESSAGE PLAYBACK LOGIC ====================
-  useEffect(() => {
-    if (receiverState === 'messages' && messages.length > 0) {
-      if (currentMessageIndex < messages.length) {
-        setMessageVisible(true);
-        
-        const fadeOutTimer = setTimeout(() => {
-          setMessageVisible(false);
-          
-          const nextMessageTimer = setTimeout(() => {
-            if (currentMessageIndex + 1 < messages.length) {
-              setCurrentMessageIndex(currentMessageIndex + 1);
-              setMessageVisible(true);
-            } else {
-              setReceiverState('standby');
-            }
-          }, 1000);
-
-          return () => clearTimeout(nextMessageTimer);
-        }, 9000);
-
-        return () => clearTimeout(fadeOutTimer);
-      }
-    }
-  }, [receiverState, currentMessageIndex, messages.length]);
 
   // ==================== SENDER FUNCTIONS ====================
   const sendMessage = async () => {
@@ -497,97 +442,6 @@ function App() {
     </div>
   );
 
-  // ==================== RENDER RECEIVER DASHBOARD ====================
-  const renderReceiver = () => (
-    <div className="receiver-bg" style={{
-      height: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      position: 'relative'
-    }}>
-      {receiverState === 'intro' && (
-        <div className="neon-text message-fade-in" style={{
-          fontSize: '48px',
-          textAlign: 'center',
-          fontWeight: 'bold'
-        }}>
-          RADIATRON X-9 DRS
-        </div>
-      )}
-
-      {receiverState === 'rscope' && (
-        <div className="neon-text message-fade-in" style={{
-          fontSize: '56px',
-          textAlign: 'center',
-          lineHeight: '1.2'
-        }}>
-          <div>R-SCOPE</div>
-          <div style={{ fontSize: '48px', marginTop: '10px' }}>X-9</div>
-        </div>
-      )}
-
-      {receiverState === 'messages' && messages.length > 0 && (
-        <div 
-          className={`neon-text ${messageVisible ? 'message-fade-in' : 'message-fade-out'}`}
-          style={{
-            fontSize: '36px',
-            textAlign: 'center',
-            padding: '40px',
-            maxWidth: '80%',
-            border: '2px solid #00ff00',
-            borderRadius: '10px',
-            background: 'rgba(0, 255, 0, 0.05)'
-          }}
-        >
-          <div style={{ marginBottom: '20px' }}>
-            📡 TRANSMISSION {currentMessageIndex + 1}/{messages.length}
-          </div>
-          <div style={{ fontSize: '28px', lineHeight: '1.5' }}>
-            {messages[currentMessageIndex]?.text}
-          </div>
-          <div style={{ fontSize: '16px', marginTop: '20px', opacity: '0.7' }}>
-            {messages[currentMessageIndex]?.time}
-          </div>
-        </div>
-      )}
-
-      {receiverState === 'standby' && (
-        <div className="neon-text message-fade-in" style={{
-          fontSize: '32px',
-          textAlign: 'center',
-          opacity: '0.8'
-        }}>
-          SYSTEM STANDBY — NO TRANSMISSIONS
-        </div>
-      )}
-
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundImage: `
-          repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 2px,
-            rgba(0, 255, 0, 0.03) 2px,
-            rgba(0, 255, 0, 0.03) 4px
-          ),
-          repeating-linear-gradient(
-            90deg,
-            transparent,
-            transparent 2px,
-            rgba(0, 255, 0, 0.03) 2px,
-            rgba(0, 255, 0, 0.03) 4px
-          )
-        `,
-        pointerEvents: 'none'
-      }} />
-    </div>
-  );
 
   // ==================== MAIN RENDER ====================
   return (
