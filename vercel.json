@@ -5,6 +5,6 @@
   "outputDirectory": "build",
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/[^.]+", "destination": "/" }
+    { "source": "/:path*", "destination": "/" }
   ]
 }
